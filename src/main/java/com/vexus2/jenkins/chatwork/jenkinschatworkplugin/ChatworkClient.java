@@ -42,6 +42,8 @@ public class ChatworkClient {
       con.setRequestProperty("X-ChatWorkToken", this.apiKey);
       con.setRequestProperty("Content-type", "application/x-www-form-urlencoded; charset=UTF-8");
 
+      message = message.substring(1, message.length());
+
       String urlParameters = "body=" + message;
 
       con.setDoOutput(true);
@@ -85,6 +87,8 @@ public class ChatworkClient {
       // Taskの期限の設定
       // 暫定的に期限を当日に設定する(ChatWorkの期限は日付までなので、UnixTimeStampの値を1000で割る必要がある)
       long limit = System.currentTimeMillis() / 1000;
+
+      message = message.substring(1, message.length());
 
       String urlParameters = "body=" + message + "&limit=" + limit + "&to_ids=" + ids;
 

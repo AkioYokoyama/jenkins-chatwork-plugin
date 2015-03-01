@@ -86,8 +86,6 @@ public class ChatworkPublisher extends Publisher {
 
                 if (message.equals("$payload")) return true;
 
-//                message = message.substring(1, message.length() + 1);
-
                 ChatworkClient chatworkClient = new ChatworkClient(build, getDescriptor().getApikey(), getRid(), getDefaultMessage());
                 if (this.type.equals("messages")) {
                     chatworkClient.sendMessage(message);
@@ -197,7 +195,7 @@ public class ChatworkPublisher extends Publisher {
                 message.append(String.format("%sさんがコメントをつけました。\n", reviewer));
                 message.append(url);
 
-                if (body.indexOf(":bug:") != -1) {
+                if (body.indexOf(String.format("%s", this.symbolTask)) != -1) {
                     this.type = "tasks";
                     taskIds = new StringBuilder();
                     taskIds.append(chatworkIds.get(0));
