@@ -86,8 +86,6 @@ public class ChatworkPublisher extends Publisher {
 
                 if (message.equals("$payload")) return true;
 
-//                message = message.substring(1, message.length() + 1);
-
                 ChatworkClient chatworkClient = new ChatworkClient(build, getDescriptor().getApikey(), getRid(), getDefaultMessage());
                 if (this.type.equals("messages")) {
                     chatworkClient.sendMessage(message);
