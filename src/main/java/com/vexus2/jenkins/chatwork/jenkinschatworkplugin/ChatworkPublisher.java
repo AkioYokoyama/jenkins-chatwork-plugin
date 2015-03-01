@@ -195,7 +195,7 @@ public class ChatworkPublisher extends Publisher {
                 message.append(String.format("%sさんがコメントをつけました。\n", reviewer));
                 message.append(url);
 
-                if (body.indexOf(":bug:") != -1) {
+                if (body.indexOf(String.format("%s", this.symbolTask)) != -1) {
                     this.type = "tasks";
                     taskIds = new StringBuilder();
                     taskIds.append(chatworkIds.get(0));
