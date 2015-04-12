@@ -221,7 +221,7 @@ public class ChatworkPublisher extends Publisher {
                     if (maxBodyLength > Integer.parseInt(maxCommentNum)) {
                         displayComment = String.format("[code]%s...[/code]\n", body.substring(0, maxBodyLength));
                     } else {
-                        displayComment = body;
+                        displayComment = String.format("[code]%s[/code]\n", body.substring(0, maxBodyLength));
                     }
 
                     // To通知
