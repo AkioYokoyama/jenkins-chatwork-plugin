@@ -22,6 +22,12 @@
         <f:textbox/>
     </f:entry>
     <f:entry
+            title="The maximum number of characters"
+            field="maxCommentNum"
+            description="ここに設定した数字が表示される文字数になります">
+        <f:textbox/>
+    </f:entry>
+    <f:entry
             title="Default message"
             field="defaultMessage">
         <f:textarea/>

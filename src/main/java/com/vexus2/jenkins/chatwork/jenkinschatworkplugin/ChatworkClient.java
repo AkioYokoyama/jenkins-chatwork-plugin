@@ -20,13 +20,19 @@ public class ChatworkClient {
 
   private final String defaultMessage;
 
+  private final String symbolTask;
+
+  private final String maxCommentNum;
+
   private static final String API_URL = "https://api.chatwork.com/v1";
 
-  public ChatworkClient(AbstractBuild build, String apiKey, String channelId, String defaultMessage) {
-      this.build = build;
-      this.apiKey = apiKey;
-      this.channelId = channelId;
+  public ChatworkClient(AbstractBuild build, String apiKey, String channelId, String defaultMessage, String symbolTask, String maxCommentNum) {
+      this.build          = build;
+      this.apiKey         = apiKey;
+      this.channelId      = channelId;
       this.defaultMessage = defaultMessage;
+      this.symbolTask     = symbolTask;
+      this.maxCommentNum  = maxCommentNum;
   }
 
   public boolean sendMessage(String message) throws Exception {

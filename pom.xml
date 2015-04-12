@@ -10,7 +10,7 @@
     <artifactId>chatworkgithub</artifactId>
     <name>ChatWork GitHub Plugin</name>
     <description>This Plugin will notify the ChatWork any message.</description>
-    <version>1.0</version>
+    <version>1.5</version>
     <packaging>hpi</packaging>
     <url>https://wiki.jenkins-ci.org/display/JENKINS/ChatWork+GitHub+Plugin</url>
 

@@ -15,6 +15,7 @@ import org.kohsuke.stapler.StaplerRequest;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.ArrayList;
+import java.util.Arrays;
 
 public class ChatworkPublisher extends Publisher {
 
@@ -22,6 +23,7 @@ public class ChatworkPublisher extends Publisher {
     private final String defaultMessage;
     private final String userInfo;
     private final String symbolTask;
+    private final String maxCommentNum;
 
     private Boolean notifyOnSuccess;
     private Boolean notifyOnFail;
@@ -32,16 +34,17 @@ public class ChatworkPublisher extends Publisher {
 
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor" 
     @DataBoundConstructor
-        public ChatworkPublisher(String rid, String defaultMessage, String userInfo, String symbolTask, Boolean notifyOnSuccess, Boolean notifyOnFail) {
-            this.rid = rid;
-            this.notifyOnSuccess = notifyOnSuccess;
-            this.notifyOnFail = notifyOnFail;
-            this.defaultMessage = (defaultMessage != null) ? defaultMessage : "";
-            this.userInfo = (userInfo != null) ? userInfo : "";
-            this.symbolTask = (symbolTask != null) ? symbolTask : ":bug:";
-            this.type = "";
-            this.ids = "";
-        }
+    public ChatworkPublisher(String rid, String defaultMessage, String userInfo, String symbolTask, String maxCommentNum, Boolean notifyOnSuccess, Boolean notifyOnFail) {
+        this.rid = rid;
+        this.notifyOnSuccess = notifyOnSuccess;
+        this.notifyOnFail = notifyOnFail;
+        this.defaultMessage = (defaultMessage != null) ? defaultMessage : "";
+        this.userInfo = (userInfo != null) ? userInfo : "";
+        this.symbolTask = (symbolTask != null) ? symbolTask : ":sos:";
+        this.maxCommentNum = (maxCommentNum != "") ? maxCommentNum : "50";
+        this.type = "";
+        this.ids = "";
+    }
 
     /**
      * We'll use this from the <tt>config.jelly</tt>.
@@ -58,6 +61,14 @@ public class ChatworkPublisher extends Publisher {
         return userInfo;
     }
 
+    public String getSymbolTask() {
+        return symbolTask ;
+    }
+
+    public String getMaxCommentNum() {
+        return maxCommentNum;
+    }
+
     public Boolean getNotifyOnSuccess() {
         return notifyOnSuccess;
     }
@@ -67,37 +78,41 @@ public class ChatworkPublisher extends Publisher {
     }
 
     @Override
-        public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) {
+        Boolean result = true;
+        this.build = build;
 
-            Boolean result = true;
-            this.build = build;
-
-            if(this.build.getResult() == Result.SUCCESS && !this.notifyOnSuccess) {
-                return true;
-            }
-            if(this.build.getResult() == Result.FAILURE && !this.notifyOnFail) {
-                return true;
-            }
-            try {
-
-                String message = createMessage();
-
-                if (message == null) return false;
-
-                if (message.equals("$payload")) return true;
-
-                ChatworkClient chatworkClient = new ChatworkClient(build, getDescriptor().getApikey(), getRid(), getDefaultMessage());
-                if (this.type.equals("messages")) {
-                    chatworkClient.sendMessage(message);
-                } else if (this.type.equals("tasks")) {
-                    chatworkClient.createTask(message, this.ids);
-                }
-            } catch (Exception e) {
-                result = false;
-                listener.getLogger().println(e.getMessage());
-            }
-            return result;
+        if(this.build.getResult() == Result.SUCCESS && !this.notifyOnSuccess) {
+            return true;
         }
+        if(this.build.getResult() == Result.FAILURE && !this.notifyOnFail) {
+            return true;
+        }
+        try {
+            String message = createMessage();
+            if (message == null) return false;
+            if (message.equals("$payload")) return true;
+            ChatworkClient chatworkClient = new ChatworkClient(build, getDescriptor().getApikey(), getRid(), getDefaultMessage(), getSymbolTask(), getMaxCommentNum());
+            if (this.type.equals("messages")) {
+                // ChatWorkへメッセージの送信
+                chatworkClient.sendMessage(message);
+            } else if (this.type.equals("tasks")) {
+                // ChatWorkへタスク作成
+                StringBuilder toMessage = new StringBuilder();
+                String[] idAry = this.ids.split(",", 0);
+                for (int i = 0; i < idAry.length; i++) {
+                    toMessage.append(String.format(" [To:%s]", idAry[i]));
+                }
+                toMessage.append(" レビュー依頼が来ました");
+                chatworkClient.sendMessage(toMessage.toString());
+                chatworkClient.createTask(message, this.ids);
+            }
+        } catch (Exception e) {
+            result = false;
+            listener.getLogger().println(e.getMessage());
+        }
+        return result;
+    }
 
     private String createMessage() throws Exception {
         String message = this.defaultMessage;
@@ -126,14 +141,11 @@ public class ChatworkPublisher extends Publisher {
     }
 
     private String analyzePayload(String parameterDefinition) {
-
         JSONObject json = JSONObject.fromObject(parameterDefinition);
-
         StringBuilder message;
         StringBuilder taskIds;
         String chatworkId = "";
         String chatworkName = "";
-
         ArrayList<String> chatworkIds = new ArrayList<String>();
         ArrayList<String> chatworkNames = new ArrayList<String>();
 
@@ -187,14 +199,6 @@ public class ChatworkPublisher extends Publisher {
             if (chatworkIds == null || chatworkIds.size() == 0 || chatworkNames == null || chatworkNames.size() == 0) {
                 return null;
             } else {
-                // To通知
-                message = new StringBuilder();
-                for (int i = 0; i < chatworkIds.size(); i++) {
-                  message.append(String.format("[To:%s] %sさん\n", chatworkIds.get(i), chatworkNames.get(i)));
-                }
-                message.append(String.format("%sさんがコメントをつけました。\n", reviewer));
-                message.append(url);
-
                 if (body.indexOf(String.format("%s", this.symbolTask)) != -1) {
                     this.type = "tasks";
                     taskIds = new StringBuilder();
@@ -206,7 +210,30 @@ public class ChatworkPublisher extends Publisher {
                         }
                     }
                     this.ids = taskIds.toString();
+                    message = new StringBuilder();
+                    message.append(String.format("%sさんがコメントをつけました。\n", reviewer));
+                    message.append(url);
+
                 } else {
+                    // コメントの文字数を取得
+                    int maxBodyLength = body.length();
+                    String displayComment = "";
+                    if (maxBodyLength > Integer.parseInt(maxCommentNum)) {
+                        displayComment = String.format("[code]%s...[/code]\n", body.substring(0, maxBodyLength));
+                    } else {
+                        displayComment = body;
+                    }
+
+                    // To通知
+                    message = new StringBuilder();
+                    message.append("[info]");
+                    for (int i = 0; i < chatworkIds.size(); i++) {
+                        message.append(String.format("[To:%s] %sさん ", chatworkIds.get(i), chatworkNames.get(i)));
+                    }
+                    message.append(String.format("\n%sさんがコメントをつけました。\n", reviewer));
+                    message.append(url);
+                    message.append(displayComment);
+                    message.append("[/info]");
                     this.type = "messages";
                 }
             }
