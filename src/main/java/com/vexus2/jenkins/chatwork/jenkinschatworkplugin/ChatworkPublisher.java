@@ -216,12 +216,12 @@ public class ChatworkPublisher extends Publisher {
 
                 } else {
                     // コメントの文字数を取得
-                    int maxBodyLength = body.length();
+                    int bodyLength = body.length();
                     String displayComment = "";
-                    if (maxBodyLength > Integer.parseInt(maxCommentNum)) {
-                        displayComment = String.format("[code]%s...[/code]\n", body.substring(0, maxBodyLength));
+                    if (bodyLength > Integer.parseInt(maxCommentNum)) {
+                        displayComment = String.format("[code]%s...[/code]\n", body.substring(0, Integer.parseInt(maxCommentNum)));
                     } else {
-                        displayComment = String.format("[code]%s[/code]\n", body.substring(0, maxBodyLength));
+                        displayComment = String.format("[code]%s[/code]\n", body.substring(0, bodyLength));
                     }
 
                     // To通知
